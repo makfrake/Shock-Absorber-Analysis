@@ -1,0 +1,112 @@
+%% ----------- Ammortizzatore con spina calibrata -----------------
+
+clc, clear all
+
+vs = 3;                % sink speed [m/s]
+M = 10000;             % massa sul carrello [kg]
+g = 9.81;              % accelerazione di gravità [m/s^2]
+Ah = 0.006;            % area parte idraulica [m^2]
+Ag = 0.0048;           % area parte in gas [m^2]
+cpn = 8000;            % coefficiente di smorzamento pneumatico [N s/m]
+kpn = 5000000;         % coefficiente di rigidezza pneumatico [N/m]  
+h0 = 0.75;             % corsa totale dei pistoni flottanti [m]
+Pg0 = 4000000;         % pressione di precarica del gas [Pa]
+n = 1.3;               % esponente politropica []
+rho = 850;             % densità fluido smorzante [kg/m^3]
+ks = 2;                % coefficiente di perdita di carico []
+As0 = 0.0001;          % sezione orifizio nella posizione a riposo [m^2]
+cmax = 0.5;            % corsa massima [m]
+F0 = 25000;            % forzante [N]
+tau = 3;               % costante temporale [s]
+beta = 800000000;      % bulk modulus [Pa]
+%%%%%%%%%%%%%%%%%%%%%%%
+% Condizioni iniziali %
+%%%%%%%%%%%%%%%%%%%%%%%
+zp0 = vs;              % velocità iniziale primo pistone
+z0 = 0;                % posizione iniziale primo pistone
+s0 = 0;                % posizione iniziale secondo pistone
+Ph0 = 0;               % pressione iniziale fluido smorzante
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Parametri di simulazione (impostare a seguito di analisi degli errori) %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+dt      =   0.002;              % Passo di integrazione [sec]
+T_sim   =   5;                  % Tempo di simulazione [sec]
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Definizione stati, output e input %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+x1(1)   =   z0;
+x2(1)   =   zp0;
+x3(1)   =   s0;
+x4(1)   =   Ph0;
+u(1)    =   F0;
+y1(1)   =   x1(1);
+y2(1)   =   x3(1);
+y3(1)   =   Pg0;
+y4(1)   =   x4(1);
+y5(1)   =   0;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Integrazione numerica: metodo di Eulero ("PASSO FISSO/ORDINE 1") %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+for i=1:1+round(T_sim/dt)
+    if x4(i) < Pg0
+        t(i)=(i-1)*dt;
+        x1p(i) = x2(i);
+        x2p(i) = g-x4(i)*Ah/M-F0*exp(-t(i)/tau)/M;
+        x3p(i) = x4(i)*Ah/cpn-x3(i)*kpn/cpn;
+        %Pg(i) = Pg0;
+        %Qs(i) = 0;
+        %As(i) = As0*(1-((x1(i)-x3(i))/cmax)^2);
+        x4p(i) = beta*(Ah*(x2(i)-(x4(i)*Ah-kpn*x3(i))/(cpn)))/(Ah*(cmax-(x1(i)-x3(i)))); 
+        %x4p(i)  = beta*(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))/(Ah*(cmax-(x1(i)-x3(i))));
+        if t(i) < T_sim
+            x1(i+1)     =   x1(i)+x1p(i)*dt;   %+0.5*x2p(i)*dt^2;
+            % NOTA: nell'espressione di x1 si trascura il termine 0.5*x1pp*dt^2=0.5*x2p*dt^2
+            x2(i+1)     =   x2(i)+x2p(i)*dt;   %+0.5*(-x4p(i)*Ah/M+F0*exp(-t(i)/tau)/M)*dt^2;
+            % NOTA: nell'espressione di x2 si trascura il termine 0.5*x2pp*dt^2=0.5*(-x4p*Ah/M+F0*exp(-t/tau)/M)*dt^2
+            x3(i+1)     =   x3(i)+x3p(i)*dt;   %+0.5*(x4p(i)*Ah/cpn-x3p(i)*kpn/cpn)*dt^2;
+            % NOTA: nell'espressione di x3 si trascura il termine 0.5*x3pp*dt^2=0.5*(x4p*Ah/cpn-x3p*kpn/cpn)*dt^2
+            x4(i+1)     =   x4(i)+x4p(i)*dt;   %+0.5*(beta*(((Ah*(x2p(i)-x4p(i)*Ah/cpn+x3p(i)*kpn/cpn))*(Ah*(cmax-(x1(i)-x3(i))))-(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))*(-Ah*(x1p(i)-x3p(i))))/((Ah*(cmax-(x1(i)-x3(i))))^(2))))*dt^2;
+            % NOTA: nell'espressione di x3 si trascura il termine 0.5*x3pp*dt^2=0.5*(beta*(((Ah*(x2p(i)-x4p(i)*Ah/cpn+x3p(i)*kpn/cpn))*(Ah*(cmax-(x1(i)-x3(i))))-(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))*(-Ah*(x1(i)-x3(i))))/((Ah*(cmax-(x1(i)-x3(i))))^(2))))*dt^2
+            
+            %{
+            y1(i+1) = x1(i+1);
+            y2(i+1) = x3(i+1);
+            y3(i+1) = Pg
+            y4(i+1) = Ps
+            y5(i+1) = Qs
+            %}
+
+        end
+        %qui ci devi aggiungere il calcolo dell'errore di implementazione
+    else
+        t(i)=(i-1)*dt;
+        x1p(i) = x2(i);
+        x2p(i) = g-x4(i)*Ah/M-F0*exp(-t(i)/tau)/M;
+        x3p(i) = x4(i)*Ah/cpn-x3(i)*kpn/cpn;
+        %Pg(i) = Pg0;
+        %Qs(i) = 0;
+        %As(i) = As0*(1-((x1(i)-x3(i))/cmax)^2);
+        x4p(i) = beta*(Ah*(x2(i)-(x4(i)*Ah-kpn*x3(i))/(cpn))-As0*(1-((x1(i)-x3(i))/cmax)^(2))*sqrt(2*abs(x4(i)-Pg0*(1-(Ah*(x1(i)-x3(i))/(Ag*h0)))^(-n)))*sign(x4(i)-Pg0*(1-(Ah*(x1(i)-x3(i))/(Ag*h0)))^(-n)))/(Ah*(cmax-(x1(i)-x3(i)))); 
+        %x4p(i)  = beta*(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))/(Ah*(cmax-(x1(i)-x3(i))));
+        if t(i) < T_sim
+            x1(i+1)     =   x1(i)+x1p(i)*dt;   %+0.5*x2p(i)*dt^2;
+            % NOTA: nell'espressione di x1 si trascura il termine 0.5*x1pp*dt^2=0.5*x2p*dt^2
+            x2(i+1)     =   x2(i)+x2p(i)*dt;   %+0.5*(-x4p(i)*Ah/M+F0*exp(-t(i)/tau)/M)*dt^2;
+            % NOTA: nell'espressione di x2 si trascura il termine 0.5*x2pp*dt^2=0.5*(-x4p*Ah/M+F0*exp(-t/tau)/M)*dt^2
+            x3(i+1)     =   x3(i)+x3p(i)*dt;   %+0.5*(x4p(i)*Ah/cpn-x3p(i)*kpn/cpn)*dt^2;
+            % NOTA: nell'espressione di x3 si trascura il termine 0.5*x3pp*dt^2=0.5*(x4p*Ah/cpn-x3p*kpn/cpn)*dt^2
+            x4(i+1)     =   x4(i)+x4p(i)*dt;   %+0.5*(beta*(((Ah*(x2p(i)-x4p(i)*Ah/cpn+x3p(i)*kpn/cpn))*(Ah*(cmax-(x1(i)-x3(i))))-(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))*(-Ah*(x1p(i)-x3p(i))))/((Ah*(cmax-(x1(i)-x3(i))))^(2))))*dt^2;
+            % NOTA: nell'espressione di x3 si trascura il termine 0.5*x3pp*dt^2=0.5*(beta*(((Ah*(x2p(i)-x4p(i)*Ah/cpn+x3p(i)*kpn/cpn))*(Ah*(cmax-(x1(i)-x3(i))))-(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))*(-Ah*(x1(i)-x3(i))))/((Ah*(cmax-(x1(i)-x3(i))))^(2))))*dt^2
+        
+            %{
+            y1(i+1) = x1(i+1);
+            y2(i+1) = x3(i+1);
+            y3(i+1) = Pg
+            y4(i+1) = Ps
+            y5(i+1) = Qs
+            %}
+        
+        end
+        %qui ci devi aggiungere il calcolo dell'errore di implementazione
+    end
+end
