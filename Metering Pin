@@ -7,7 +7,7 @@ M = 10000;             % massa sul carrello [kg]
 g = 9.81;              % accelerazione di gravità [m/s^2]
 Ah = 0.006;            % area parte idraulica [m^2]
 Ag = 0.0048;           % area parte in gas [m^2]
-cpn = 8000;            % coefficiente di smorzamento pneumatico [N s/m]
+cpn = 100000;          % coefficiente di smorzamento pneumatico [N s/m]
 kpn = 5000000;         % coefficiente di rigidezza pneumatico [N/m]  
 h0 = 0.75;             % corsa totale dei pistoni flottanti [m]
 Pg0 = 4000000;         % pressione di precarica del gas [Pa]
@@ -19,6 +19,10 @@ cmax = 0.5;            % corsa massima [m]
 F0 = 25000;            % forzante [N]
 tau = 3;               % costante temporale [s]
 beta = 800000000;      % bulk modulus [Pa]
+resx1 = 0.02;          % Risoluzione richiesta ai risultati in posizione del cilindro superiore [m]
+resx2 = 0.02;          % Risoluzione richiesta ai risultati in velocità del cilindro superiore [m/s]
+resx3 = 0.02;          % Risoluzione richiesta ai risultati in posizione del cilindro inferiore [m]
+resx4 = 0.02;          % Risoluzione richiesta ai risultati in pressione del fluido idraulico [m/s]
 %%%%%%%%%%%%%%%%%%%%%%%
 % Condizioni iniziali %
 %%%%%%%%%%%%%%%%%%%%%%%
@@ -39,11 +43,8 @@ x2(1)   =   zp0;
 x3(1)   =   s0;
 x4(1)   =   Ph0;
 u(1)    =   F0;
-y1(1)   =   x1(1);
-y2(1)   =   x3(1);
-y3(1)   =   Pg0;
-y4(1)   =   x4(1);
-y5(1)   =   0;
+Pg1(1)  =   Pg0;
+Qs(1)   =   0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Integrazione numerica: metodo di Eulero ("PASSO FISSO/ORDINE 1") %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -53,11 +54,10 @@ for i=1:1+round(T_sim/dt)
         x1p(i) = x2(i);
         x2p(i) = g-x4(i)*Ah/M-F0*exp(-t(i)/tau)/M;
         x3p(i) = x4(i)*Ah/cpn-x3(i)*kpn/cpn;
-        %Pg(i) = Pg0;
-        %Qs(i) = 0;
-        %As(i) = As0*(1-((x1(i)-x3(i))/cmax)^2);
+        Pg(i)  = Pg0;
+        Qs(i)  = 0;
+        As(i)  = As0*(1-((x1(i)-x3(i))/cmax)^2);
         x4p(i) = beta*(Ah*(x2(i)-(x4(i)*Ah-kpn*x3(i))/(cpn)))/(Ah*(cmax-(x1(i)-x3(i)))); 
-        %x4p(i)  = beta*(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))/(Ah*(cmax-(x1(i)-x3(i))));
         if t(i) < T_sim
             x1(i+1)     =   x1(i)+x1p(i)*dt;   %+0.5*x2p(i)*dt^2;
             % NOTA: nell'espressione di x1 si trascura il termine 0.5*x1pp*dt^2=0.5*x2p*dt^2
@@ -67,27 +67,21 @@ for i=1:1+round(T_sim/dt)
             % NOTA: nell'espressione di x3 si trascura il termine 0.5*x3pp*dt^2=0.5*(x4p*Ah/cpn-x3p*kpn/cpn)*dt^2
             x4(i+1)     =   x4(i)+x4p(i)*dt;   %+0.5*(beta*(((Ah*(x2p(i)-x4p(i)*Ah/cpn+x3p(i)*kpn/cpn))*(Ah*(cmax-(x1(i)-x3(i))))-(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))*(-Ah*(x1p(i)-x3p(i))))/((Ah*(cmax-(x1(i)-x3(i))))^(2))))*dt^2;
             % NOTA: nell'espressione di x3 si trascura il termine 0.5*x3pp*dt^2=0.5*(beta*(((Ah*(x2p(i)-x4p(i)*Ah/cpn+x3p(i)*kpn/cpn))*(Ah*(cmax-(x1(i)-x3(i))))-(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))*(-Ah*(x1(i)-x3(i))))/((Ah*(cmax-(x1(i)-x3(i))))^(2))))*dt^2
-            
-            %{
-            y1(i+1) = x1(i+1);
-            y2(i+1) = x3(i+1);
-            y3(i+1) = Pg
-            y4(i+1) = Ps
-            y5(i+1) = Qs
-            %}
 
         end
-        %qui ci devi aggiungere il calcolo dell'errore di implementazione
+        errimp_x1(i) = 0.5*x2p(i)*dt^2;
+        errimp_x2(i) = 0.5*(-x4p(i)*Ah/M+F0*exp(-t(i)/tau)/M)*dt^2;
+        errimp_x3(i) = 0.5*(x4p(i)*Ah/cpn-x3p(i)*kpn/cpn)*dt^2;
+        errimp_x4(i) = 0.5*(beta*(((Ah*(x2p(i)-x4p(i)*Ah/cpn+x3p(i)*kpn/cpn))*(Ah*(cmax-(x1(i)-x3(i))))-(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))*(-Ah*(x1p(i)-x3p(i))))/((Ah*(cmax-(x1(i)-x3(i))))^(2))))*dt^2;
     else
         t(i)=(i-1)*dt;
         x1p(i) = x2(i);
         x2p(i) = g-x4(i)*Ah/M-F0*exp(-t(i)/tau)/M;
         x3p(i) = x4(i)*Ah/cpn-x3(i)*kpn/cpn;
-        %Pg(i) = Pg0;
-        %Qs(i) = 0;
-        %As(i) = As0*(1-((x1(i)-x3(i))/cmax)^2);
-        x4p(i) = beta*(Ah*(x2(i)-(x4(i)*Ah-kpn*x3(i))/(cpn))-As0*(1-((x1(i)-x3(i))/cmax)^(2))*sqrt(2*abs(x4(i)-Pg0*(1-(Ah*(x1(i)-x3(i))/(Ag*h0)))^(-n)))*sign(x4(i)-Pg0*(1-(Ah*(x1(i)-x3(i))/(Ag*h0)))^(-n)))/(Ah*(cmax-(x1(i)-x3(i)))); 
-        %x4p(i)  = beta*(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))/(Ah*(cmax-(x1(i)-x3(i))));
+        Pg(i)  = Pg0*(1-Ah/(Ag*h0)*(x1(i)-x3(i)))^(-n);
+        As(i)  = As0*(1-((x1(i)-x3(i))/cmax)^2);
+        Qs(i)  = As(i)*sqrt(2*sign(x4(i)-Pg(i))/(rho*ks))*sign(x4(i)-Pg(i));
+        x4p(i) = beta*(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))/(Ah*(cmax-(x1(i)-x3(i))));
         if t(i) < T_sim
             x1(i+1)     =   x1(i)+x1p(i)*dt;   %+0.5*x2p(i)*dt^2;
             % NOTA: nell'espressione di x1 si trascura il termine 0.5*x1pp*dt^2=0.5*x2p*dt^2
@@ -98,15 +92,38 @@ for i=1:1+round(T_sim/dt)
             x4(i+1)     =   x4(i)+x4p(i)*dt;   %+0.5*(beta*(((Ah*(x2p(i)-x4p(i)*Ah/cpn+x3p(i)*kpn/cpn))*(Ah*(cmax-(x1(i)-x3(i))))-(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))*(-Ah*(x1p(i)-x3p(i))))/((Ah*(cmax-(x1(i)-x3(i))))^(2))))*dt^2;
             % NOTA: nell'espressione di x3 si trascura il termine 0.5*x3pp*dt^2=0.5*(beta*(((Ah*(x2p(i)-x4p(i)*Ah/cpn+x3p(i)*kpn/cpn))*(Ah*(cmax-(x1(i)-x3(i))))-(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))*(-Ah*(x1(i)-x3(i))))/((Ah*(cmax-(x1(i)-x3(i))))^(2))))*dt^2
         
-            %{
-            y1(i+1) = x1(i+1);
-            y2(i+1) = x3(i+1);
-            y3(i+1) = Pg
-            y4(i+1) = Ps
-            y5(i+1) = Qs
-            %}
-        
         end
-        %qui ci devi aggiungere il calcolo dell'errore di implementazione
+        %gli errori di implementazione sono stati copiati da sopra, devi
+        %riguardarli
+        errimp_x1(i) = 0.5*x2p(i)*dt^2;
+        errimp_x2(i) = 0.5*(-x4p(i)*Ah/M+F0*exp(-t(i)/tau)/M)*dt^2;
+        errimp_x3(i) = 0.5*(x4p(i)*Ah/cpn-x3p(i)*kpn/cpn)*dt^2;
+        errimp_x4(i) = 0.5*(beta*(((Ah*(x2p(i)-x4p(i)*Ah/cpn+x3p(i)*kpn/cpn))*(Ah*(cmax-(x1(i)-x3(i))))-(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))*(-Ah*(x1p(i)-x3p(i))))/((Ah*(cmax-(x1(i)-x3(i))))^(2))))*dt^2;
     end
 end
+errimp_x1max=max(abs(errimp_x1));
+errimp_x2max=max(abs(errimp_x2));
+errimp_x3max=max(abs(errimp_x3));
+errimp_x4max=max(abs(errimp_x4));
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Visualizzazione risultati di simulazione %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+figure,
+subplot(211),...
+    plot(t,x1,t,x1+errimp_x1,'LineWidth',1.5),...
+    legend('Numerica reale (y_i)','Numerica teorica (y_s)'),...
+    ylabel('Posizione [m]'),
+subplot(212),...
+    plot(t,x2,t,x2+errimp_x2,'LineWidth',1.5),...
+    legend('Numerica reale (y_i)','Numerica teorica (y_s)'),...
+    ylabel('Velocità [m/s]'),
+figure,
+plot(211),...
+    plot(t,x3,t,x3+errimp_x3,'LineWidth',1.5),...
+    legend('Numerica reale (y_i)','Numerica teorica (y_s)'),...
+    ylabel('Velocità [m/s]'),
+figure,
+plot(211),...
+    plot(t,x4,t,x4+errimp_x4,'LineWidth',1.5),...
+    legend('Numerica reale (y_i)','Numerica teorica (y_s)'),...
+    ylabel('Velocità [m/s]'),
