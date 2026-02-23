@@ -1,36 +1,36 @@
-%% ----------- Ammortizzatore con doppio pistoncino flottante -----------------
+%% ----------- Shock absorber with dual floating pistons -----------------
 
 clc, clear all
 
 vs = 3;                % sink speed [m/s]
-M = 10000;             % massa sul carrello [kg]
-g = 9.81;              % accelerazione di gravità [m/s^2]
-Ah = 0.006;            % area parte idraulica [m^2]
-Ag = 0.0048;           % area parte in gas [m^2]
-cpn = 8;               % coefficiente di smorzamento pneumatico [kN s/m]
-kpn = 5000;            % coefficiente di rigidezza pneumatico [kN/m]
-h10 = 0.5;             % corsa primo pistone flottante [m]
-h0 = 1;                % corsa totale dei pistoni flottanti [m]
-Pg10 = 4000;           % pressione di precarica del gas [kPa]
-n = 1.3;               % esponente politropica []
-rho = 850;             % densità fluido smorzante [kg/m^3]
-ks = 2;                % coefficiente di perdita di carico []
-As = 0.0001;           % sezione orifizio [m^2]
-cmax = 0.5;            % corsa massima [m]
-F0 = 25000;            % forzante [N]
-tau = 3;               % costante temporale [s]
-% condizioni iniziali
-zp0 = vs;              % velocità iniziale primo pistone
-z0 = 0;                % posizione iniziale primo pistone
-s0 = 0;                % posizione iniziale secondo pistone
-Ph0 = Pg10;            % pressione iniziale fluido smorzante
+M = 10000;             % mass on the landing gear [kg]
+g = 9.81;              % gravitational acceleration [m/s^2]
+Ah = 0.006;            % hydraulic part area [m^2]
+Ag = 0.0048;           % gas part area [m^2]
+cpn = 8;               % pneumatic damping coefficient [kN s/m]
+kpn = 5000;            % pneumatic stiffness coefficient [kN/m]
+h10 = 0.5;             % first floating piston stroke [m]
+h0 = 1;                % total floating pistons stroke [m]
+Pg10 = 4000;           % gas pre-charge pressure [kPa]
+n = 1.3;               % polytropic exponent []
+rho = 850;             % damping fluid density [kg/m^3]
+ks = 2;                % pressure loss coefficient []
+As = 0.0001;           % orifice cross-section [m^2]
+cmax = 0.5;            % maximum stroke [m]
+F0 = 25000;            % forcing function [N]
+tau = 3;               % time constant [s]
+% initial conditions
+zp0 = vs;              % first piston initial velocity
+z0 = 0;                % first piston initial position
+s0 = 0;                % second piston initial position
+Ph0 = Pg10;            % damping fluid initial pressure
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Parametri di simulazione (impostare a seguito di analisi degli errori) %
+% Simulation parameters (set following error analysis)                   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-dt      =   0.002;              % Passo di integrazione [sec]
-T_sim   =   2;                  % Tempo di simulazione [sec]
+dt      =   0.002;              % Integration step [sec]
+T_sim   =   2;                  % Simulation time [sec]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Definizione stati, output e input %
+% Definition of states, output and input %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 x1(1)   =   z0;
 x2(1)   =   zp0;
@@ -43,40 +43,40 @@ y3(1)   =   Pg10*(1-(Ah)/(Ag*h10)*(x1(1)-x3(1)))^(-n);
 y4(1)   =   Ph0;
 y5(1)   =   As*sqrt((2*abs(y4(1)-Pg10*(1-(Ah)/(Ag*h10)*(x1(1)-x3(1)))^(-n)))/(rho*ks))*sign(y4(1)-Pg10*(1-(Ah)/(Ag*h10)*(x1(1)-x3(1)))^(-n));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Integrazione numerica: metodo di Eulero ("PASSO FISSO/ORDINE 1") %
+% Numerical integration: Euler method ("FIXED STEP/ORDER 1")       %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%devi poi mettere il ciclo if per i due casi -> x1-x3 <= cmax/2 ; x1-x3 > cmax/2
+% then you must insert the if cycle for the two cases -> x1-x3 <= cmax/2 ; x1-x3 > cmax/2
 for i = 1:1+round(T_sim/dt)
-    if (x1(i)-x3(i)) <= cmax/2
-        t(i)=(i-1)*dt;
-        x1p(i) = x2(i);
-        x2p(i) = g-y4(i)*Ah/M-F0*exp(-t(i)/tau)/M;
-        x3p(i) = y4(i)*Ah/cpn-x3(i)*kpn/cpn;
-        y4(i)  = (rho*ks*Ah^2)/(2*As^2)*(x1p(i)-x3p(i))^2*sign(x1p(i)-x3p(i))+Pg10*(1-(Ah)/(Ag*h10)*(x1(i)-x3(i)))^(-n);
-        if t(i) < T_sim
-            x1(i+1)     =   x1(i)+x1p(i)*dt;
-            % NOTA: nell'espressione di x1 si trascura il termine 0.5*x1pp*dt^2=0.5*x2p*dt^2
-            x2(i+1)     =   x2(i)+x2p(i)*dt;
-            % NOTA: nell'espressione di x2 si trascura il termine 0.5*x2pp*dt^2=-0.5*(c/m*x2p+k/m*x2)*dt^2
-            x3(i+1)     =   x3(i)+x3p(i)*dt;
-    
-            %x4(i+1)     =   x4(i);  % x4p non compare in alcuna equazione!!!
-        end
-        %qui ci devi aggiungere il calcolo dell'errore di implementazione
-    else
-        t(i)=(i-1)*dt;
-        x1p(i) = x2(i);
-        x2p(i) = g-((rho*ks*Ah^2)/(2*As^2)*(x1p(i)-x3p(i))^2*sign(x1p(i)-x3p(i))+Pg10*(1-(Ah)/(Ag*h10)*(x1(i)-x3(i)))^(-n))*Ah/M-F0*exp(-t(i)/tau)/M;
-        x3p(i) = ((rho*ks*Ah^2)/(2*As^2)*(x1p(i)-x3p(i))^2*sign(x1p(i)-x3p(i))+Pg10*(1-(Ah)/(Ag*h10)*(x1(i)-x3(i)))^(-n))*Ah/cpn-x3(i)*kpn/cpn;
-        y4(i)  = (rho*ks*Ah^2)/(2*As^2)*(x1p(i)-x3p(i))^2*sign(x1p(i)-x3p(i))+Pg10*(1-(Ah)/(Ag*h10)*(x1(i)-x3(i)))^(-n);
-        if t(i) < T_sim
-            x1(i+1)     =   x1(i)+x1p(i)*dt;
-            % NOTA: nell'espressione di x1 si trascura il termine 0.5*x1pp*dt^2=0.5*x2p*dt^2
-            x2(i+1)     =   x2(i)+x2p(i)*dt;
-            % NOTA: nell'espressione di x2 si trascura il termine 0.5*x2pp*dt^2=-0.5*(c/m*x2p+k/m*x2)*dt^2
-            x3(i+1)     =   x3(i)+x3p(i)*dt;
-    
-            %x4(i+1)     =   x4(i);  % x4p non compare in alcuna equazione!!!
-        end
+if (x1(i)-x3(i)) <= cmax/2
+t(i)=(i-1)*dt;
+x1p(i) = x2(i);
+x2p(i) = g-y4(i)*Ah/M-F0*exp(-t(i)/tau)/M;
+x3p(i) = y4(i)*Ah/cpn-x3(i)*kpn/cpn;
+y4(i)  = (rho*ks*Ah^2)/(2*As^2)*(x1p(i)-x3p(i))^2*sign(x1p(i)-x3p(i))+Pg10*(1-(Ah)/(Ag*h10)*(x1(i)-x3(i)))^(-n);
+if t(i) < T_sim
+x1(i+1)     =   x1(i)+x1p(i)*dt;
+% NOTE: in the expression of x1, the term 0.5*x1pp*dt^2=0.5*x2p*dt^2 is neglected
+x2(i+1)     =   x2(i)+x2p(i)*dt;
+% NOTE: in the expression of x2, the term 0.5*x2pp*dt^2=-0.5*(c/m*x2p+k/m*x2)*dt^2 is neglected
+x3(i+1)     =   x3(i)+x3p(i)*dt;
+
+```
+        %x4(i+1)     =   x4(i);  % x4p does not appear in any equation!!!
+    end
+    % here you must add the calculation of the implementation error
+else
+    t(i)=(i-1)*dt;
+    x1p(i) = x2(i);
+    x2p(i) = g-((rho*ks*Ah^2)/(2*As^2)*(x1p(i)-x3p(i))^2*sign(x1p(i)-x3p(i))+Pg10*(1-(Ah)/(Ag*h10)*(x1(i)-x3(i)))^(-n))*Ah/M-F0*exp(-t(i)/tau)/M;
+    x3p(i) = ((rho*ks*Ah^2)/(2*As^2)*(x1p(i)-x3p(i))^2*sign(x1p(i)-x3p(i))+Pg10*(1-(Ah)/(Ag*h10)*(x1(i)-x3(i)))^(-n))*Ah/cpn-x3(i)*kpn/cpn;
+    y4(i)  = (rho*ks*Ah^2)/(2*As^2)*(x1p(i)-x3p(i))^2*sign(x1p(i)-x3p(i))+Pg10*(1-(Ah)/(Ag*h10)*(x1(i)-x3(i)))^(-n);
+    if t(i) < T_sim
+        x1(i+1)     =   x1(i)+x1p(i)*dt;
+        % NOTE: in the expression of x1, the term 0.5*x1pp*dt^2=0.5*x2p*dt^2 is neglected
+        x2(i+1)     =   x2(i)+x2p(i)*dt;
+        % NOTE: in the expression of x2, the term 0.5*x2pp*dt^2=-0.5*(c/m*x2p+k/m*x2)*dt^2 is neglected
+        x3(i+1)     =   x3(i)+x3p(i)*dt;
+
+        %x4(i+1)     =   x4(i);  % x4p does not appear in any equation!!!
     end
 end
