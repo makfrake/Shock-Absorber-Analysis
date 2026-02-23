@@ -1,42 +1,57 @@
-%% ----------- Ammortizzatore con spina calibrata -----------------
+%% ----------- Shock absorber with metering pin -----------------
 
 clc, clear all
 
 vs = 3;                % sink speed [m/s]
-M = 10000;             % massa sul carrello [kg]
-g = 9.81;              % accelerazione di gravità [m/s^2]
-Ah = 0.006;            % area parte idraulica [m^2]
-Ag = 0.0048;           % area parte in gas [m^2]
-cpn = 100000;          % coefficiente di smorzamento pneumatico [N s/m]
-kpn = 5000000;         % coefficiente di rigidezza pneumatico [N/m]  
-h0 = 0.75;             % corsa totale dei pistoni flottanti [m]
-Pg0 = 4000000;         % pressione di precarica del gas [Pa]
-n = 1.3;               % esponente politropica []
-rho = 850;             % densità fluido smorzante [kg/m^3]
-ks = 2;                % coefficiente di perdita di carico []
-As0 = 0.0001;          % sezione orifizio nella posizione a riposo [m^2]
-cmax = 0.5;            % corsa massima [m]
-F0 = 25000;            % forzante [N]
-tau = 3;               % costante temporale [s]
+M = 10000;             % mass on the landing gear [kg]
+g = 9.81;              % gravitational acceleration [m/s^2]
+Ah = 0.006;            % hydraulic part area [m^2]
+Ag = 0.0048;           % gas part area [m^2]
+cpn = 100000;          % pneumatic damping coefficient [N s/m]
+kpn = 5000000;         % pneumatic stiffness coefficient [N/m]
+
+h0 = 0.75;             % total floating pistons stroke [m]
+
+Pg0 = 4000000;         % gas pre-charge pressure [Pa]
+
+n = 1.3;               % polytropic exponent []
+
+rho = 850;             % damping fluid density [kg/m^3]
+
+ks = 2;                % pressure loss coefficient []
+
+As0 = 0.0001;          % orifice cross-section at rest position [m^2]
+
+cmax = 0.5;            % maximum stroke [m]
+
+F0 = 25000;            % forcing function [N]
+
+tau = 3;               % time constant [s]
+
 beta = 800000000;      % bulk modulus [Pa]
-resx1 = 0.02;          % Risoluzione richiesta ai risultati in posizione del cilindro superiore [m]
-resx2 = 0.02;          % Risoluzione richiesta ai risultati in velocità del cilindro superiore [m/s]
-resx3 = 0.02;          % Risoluzione richiesta ai risultati in posizione del cilindro inferiore [m]
-resx4 = 0.02;          % Risoluzione richiesta ai risultati in pressione del fluido idraulico [m/s]
+
+resx1 = 0.02;          % Required resolution for upper cylinder position [m]
+
+resx2 = 0.02;          % Required resolution for upper cylinder velocity [m/s]
+
+resx3 = 0.02;          % Required resolution for lower cylinder position [m]
+
+resx4 = 0.02;          % Required resolution for hydraulic fluid pressure [m/s]
+
 %%%%%%%%%%%%%%%%%%%%%%%
-% Condizioni iniziali %
+% Initial conditions  %
 %%%%%%%%%%%%%%%%%%%%%%%
-zp0 = vs;              % velocità iniziale primo pistone
-z0 = 0;                % posizione iniziale primo pistone
-s0 = 0;                % posizione iniziale secondo pistone
-Ph0 = 0;               % pressione iniziale fluido smorzante
+zp0 = vs;              % first piston initial velocity
+z0 = 0;                % first piston initial position
+s0 = 0;                % second piston initial position
+Ph0 = 0;               % damping fluid initial pressure
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Parametri di simulazione (impostare a seguito di analisi degli errori) %
+% Simulation parameters (set following error analysis)                   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-dt      =   0.002;              % Passo di integrazione [sec]
-T_sim   =   5;                  % Tempo di simulazione [sec]
+dt      =   0.002;              % Integration step [sec]
+T_sim   =   5;                  % Simulation time [sec]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Definizione stati, output e input %
+% Definition of states, output and input %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 x1(1)   =   z0;
 x2(1)   =   zp0;
@@ -46,7 +61,7 @@ u(1)    =   F0;
 Pg1(1)  =   Pg0;
 Qs(1)   =   0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Integrazione numerica: metodo di Eulero ("PASSO FISSO/ORDINE 1") %
+% Numerical integration: Euler method ("FIXED STEP/ORDER 1")       %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for i=1:1+round(T_sim/dt)
     if x4(i) < Pg0
@@ -60,13 +75,13 @@ for i=1:1+round(T_sim/dt)
         x4p(i) = beta*(Ah*(x2(i)-(x4(i)*Ah-kpn*x3(i))/(cpn)))/(Ah*(cmax-(x1(i)-x3(i)))); 
         if t(i) < T_sim
             x1(i+1)     =   x1(i)+x1p(i)*dt;   %+0.5*x2p(i)*dt^2;
-            % NOTA: nell'espressione di x1 si trascura il termine 0.5*x1pp*dt^2=0.5*x2p*dt^2
+            % NOTE: in the expression of x1, the term 0.5x1ppdt^2=0.5x2pdt^2 is neglected
             x2(i+1)     =   x2(i)+x2p(i)*dt;   %+0.5*(-x4p(i)*Ah/M+F0*exp(-t(i)/tau)/M)*dt^2;
-            % NOTA: nell'espressione di x2 si trascura il termine 0.5*x2pp*dt^2=0.5*(-x4p*Ah/M+F0*exp(-t/tau)/M)*dt^2
+            % NOTE: in the expression of x2, the term 0.5x2ppdt^2=0.5*(-x4pAh/M+F0exp(-t/tau)/M)dt^2
             x3(i+1)     =   x3(i)+x3p(i)*dt;   %+0.5*(x4p(i)*Ah/cpn-x3p(i)*kpn/cpn)*dt^2;
-            % NOTA: nell'espressione di x3 si trascura il termine 0.5*x3pp*dt^2=0.5*(x4p*Ah/cpn-x3p*kpn/cpn)*dt^2
+            % NOTE: in the expression of x3, the term 0.5x3ppdt^2=0.5(x4pAh/cpn-x3pkpn/cpn)dt^2
             x4(i+1)     =   x4(i)+x4p(i)*dt;   %+0.5*(beta*(((Ah*(x2p(i)-x4p(i)*Ah/cpn+x3p(i)*kpn/cpn))*(Ah*(cmax-(x1(i)-x3(i))))-(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))*(-Ah*(x1p(i)-x3p(i))))/((Ah*(cmax-(x1(i)-x3(i))))^(2))))*dt^2;
-            % NOTA: nell'espressione di x3 si trascura il termine 0.5*x3pp*dt^2=0.5*(beta*(((Ah*(x2p(i)-x4p(i)*Ah/cpn+x3p(i)*kpn/cpn))*(Ah*(cmax-(x1(i)-x3(i))))-(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))*(-Ah*(x1(i)-x3(i))))/((Ah*(cmax-(x1(i)-x3(i))))^(2))))*dt^2
+            % NOTE: in the expression of x3, the term 0.5x3ppdt^2=0.5(beta*(((Ah*(x2p(i)-x4p(i)Ah/cpn+x3p(i)kpn/cpn))(Ah(cmax-(x1(i)-x3(i))))-(Ah*(x2(i)-x4(i)Ah/cpn+x3(i)kpn/cpn)-Qs(i))(-Ah(x1(i)-x3(i))))/((Ah*(cmax-(x1(i)-x3(i))))^(2))))*dt^2
 
         end
         errimp_x1(i) = 0.5*x2p(i)*dt^2;
@@ -84,13 +99,13 @@ for i=1:1+round(T_sim/dt)
         x4p(i) = beta*(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))/(Ah*(cmax-(x1(i)-x3(i))));
         if t(i) < T_sim
             x1(i+1)     =   x1(i)+x1p(i)*dt;   %+0.5*x2p(i)*dt^2;
-            % NOTA: nell'espressione di x1 si trascura il termine 0.5*x1pp*dt^2=0.5*x2p*dt^2
+            % NOTE: in the expression of x1, the term 0.5*x1pp*dt^2=0.5*x2p*dt^2 is neglected
             x2(i+1)     =   x2(i)+x2p(i)*dt;   %+0.5*(-x4p(i)*Ah/M+F0*exp(-t(i)/tau)/M)*dt^2;
-            % NOTA: nell'espressione di x2 si trascura il termine 0.5*x2pp*dt^2=0.5*(-x4p*Ah/M+F0*exp(-t/tau)/M)*dt^2
+            % NOTE: in the expression of x2, the term 0.5*x2pp*dt^2=0.5*(-x4p*Ah/M+F0*exp(-t/tau)/M)*dt^2
             x3(i+1)     =   x3(i)+x3p(i)*dt;   %+0.5*(x4p(i)*Ah/cpn-x3p(i)*kpn/cpn)*dt^2;
-            % NOTA: nell'espressione di x3 si trascura il termine 0.5*x3pp*dt^2=0.5*(x4p*Ah/cpn-x3p*kpn/cpn)*dt^2
+            % NOTE: in the expression of x3, the term 0.5*x3pp*dt^2=0.5*(x4p*Ah/cpn-x3p*kpn/cpn)*dt^2
             x4(i+1)     =   x4(i)+x4p(i)*dt;   %+0.5*(beta*(((Ah*(x2p(i)-x4p(i)*Ah/cpn+x3p(i)*kpn/cpn))*(Ah*(cmax-(x1(i)-x3(i))))-(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))*(-Ah*(x1p(i)-x3p(i))))/((Ah*(cmax-(x1(i)-x3(i))))^(2))))*dt^2;
-            % NOTA: nell'espressione di x3 si trascura il termine 0.5*x3pp*dt^2=0.5*(beta*(((Ah*(x2p(i)-x4p(i)*Ah/cpn+x3p(i)*kpn/cpn))*(Ah*(cmax-(x1(i)-x3(i))))-(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))*(-Ah*(x1(i)-x3(i))))/((Ah*(cmax-(x1(i)-x3(i))))^(2))))*dt^2
+            % NOTE: in the expression of x3, the term 0.5*x3pp*dt^2=0.5*(beta*(((Ah*(x2p(i)-x4p(i)*Ah/cpn+x3p(i)*kpn/cpn))*(Ah*(cmax-(x1(i)-x3(i))))-(Ah*(x2(i)-x4(i)*Ah/cpn+x3(i)*kpn/cpn)-Qs(i))*(-Ah*(x1(i)-x3(i))))/((Ah*(cmax-(x1(i)-x3(i))))^(2))))*dt^2
         
         end
         %gli errori di implementazione sono stati copiati da sopra, devi
@@ -106,24 +121,24 @@ errimp_x2max=max(abs(errimp_x2));
 errimp_x3max=max(abs(errimp_x3));
 errimp_x4max=max(abs(errimp_x4));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Visualizzazione risultati di simulazione %
+% Visualization of simulation results      %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 figure,
 subplot(211),...
-    plot(t,x1,t,x1+errimp_x1,'LineWidth',1.5),...
-    legend('Numerica reale (y_i)','Numerica teorica (y_s)'),...
-    ylabel('Posizione [m]'),
+plot(t,x1,t,x1+errimp_x1,'LineWidth',1.5),...
+legend('Actual numerical (y_i)','Theoretical numerical (y_s)'),...
+ylabel('Position [m]'),
 subplot(212),...
-    plot(t,x2,t,x2+errimp_x2,'LineWidth',1.5),...
-    legend('Numerica reale (y_i)','Numerica teorica (y_s)'),...
-    ylabel('Velocità [m/s]'),
+plot(t,x2,t,x2+errimp_x2,'LineWidth',1.5),...
+legend('Actual numerical (y_i)','Theoretical numerical (y_s)'),...
+ylabel('Velocity [m/s]'),
 figure,
 plot(211),...
-    plot(t,x3,t,x3+errimp_x3,'LineWidth',1.5),...
-    legend('Numerica reale (y_i)','Numerica teorica (y_s)'),...
-    ylabel('Velocità [m/s]'),
+plot(t,x3,t,x3+errimp_x3,'LineWidth',1.5),...
+legend('Actual numerical (y_i)','Theoretical numerical (y_s)'),...
+ylabel('Velocity [m/s]'),
 figure,
 plot(211),...
-    plot(t,x4,t,x4+errimp_x4,'LineWidth',1.5),...
-    legend('Numerica reale (y_i)','Numerica teorica (y_s)'),...
-    ylabel('Velocità [m/s]'),
+plot(t,x4,t,x4+errimp_x4,'LineWidth',1.5),...
+legend('Actual numerical (y_i)','Theoretical numerical (y_s)'),...
+ylabel('Velocity [m/s]'),
