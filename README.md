@@ -16,7 +16,7 @@ The project analyzes two distinct piston configurations:
 
 ## Technical Approach
 * **Mathematical Modeling:** The system is modeled as a mass-spring-damper system with non-linear damping coefficients.
-* **Numerical Integration:** Utilizes MATLAB's ODE solvers (e.g., `ode45`) to compute the time-history of the landing gear stroke.
+* **Numerical Integration:** Utilizes the Euler method of order 1 with fixed step to compute the time-history of the landing gear stroke.
 * **Key Parameters:** Includes initial sink rate (vertical velocity), structural mass, gas pre-charge pressure, and orifice geometry.
 
 ## Requirements
