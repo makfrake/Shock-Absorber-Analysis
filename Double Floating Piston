@@ -43,7 +43,7 @@ y3(1)   =   Pg10*(1-(Ah)/(Agh10)(x1(1)-x3(1)))^(-n);
 y4(1)   =   Ph0;
 y5(1)   =   Assqrt((2abs(y4(1)-Pg10*(1-(Ah)/(Agh10)(x1(1)-x3(1)))^(-n)))/(rhoks))sign(y4(1)-Pg10(1-(Ah)/(Agh10)(x1(1)-x3(1)))^(-n));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Integrazione numerica: metodo di Eulero ("PASSO FISSO/ORDINE 1") %
+% Numerical integration: Euler method ("FIXED STEP/ORDER 1")       %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % then you must insert the if cycle for the two cases -> x1-x3 <= cmax/2 ; x1-x3 > cmax/2
 for i = 1:1+round(T_sim/dt)
