@@ -27,3 +27,5 @@ The project analyzes two distinct piston configurations:
 1. Clone the repository:
    ```bash
    git clone [https://github.com/your-username/shock-absorber-dynamics.git](https://github.com/your-username/shock-absorber-dynamics.git)
+2. Open MATLAB and navigate to the project folder
+3. Run either `metering_pin.m` or `double_floating.m` to generate the dynamic response plots
